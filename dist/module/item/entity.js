@@ -101,23 +101,52 @@ export class OseItem extends Item {
     return true;
   }
 
+  getRollTarget(rollTarget="", level=0) {
+    console.log("getRollTarget level "+level+" target "+rollTarget+" ("+(typeof rollTarget)+")");
+    if (rollTarget == null || typeof rollTarget != 'string' || rollTarget.length == 0) {
+        return { 
+            'target': 0,
+            'levelled': false
+        };
+    }
+    const targets = rollTarget.split(",");
+    let target = 0;
+    let levelled = false;
+    if (level > 0 && targets.length > 1) {
+        const targetString = level > targets.length ? targets[targets.length - 1] : targets[level - 1];
+        target = Number(targetString);
+        levelled = true;
+    } else {
+        target = Number(targets[0]);
+    }
+    if (isNaN(target)) {
+        target = 0;
+    }
+    return { 
+        'target': target, 
+        'levelled': levelled 
+    };
+  }
+
   async rollFormula(options = {}) {
     const data = this.data.data;
     if (!data.roll) {
       throw new Error("This Item does not have a formula to roll!");
     }
 
-    const label = `${this.name}`;
+    const level = this.actor.data.data.details.level;
+    const rollLevel = this.getRollTarget(data.rollTarget, level);
+    const levelLabel = rollLevel.levelled ? " (Level "+level+")": "";
+    const label = `${this.name}`+levelLabel;
     const rollParts = [data.roll];
-
-    let type = data.rollType;
+    const type = data.rollType;
 
     const newData = {
       actor: this.actor.data,
       item: this.data,
       roll: {
         type: type,
-        target: data.rollTarget,
+        target: rollLevel.target,
         blindroll: data.blindroll,
       },
     };
@@ -144,7 +173,7 @@ export class OseItem extends Item {
     });
   }
 
-  getTagList() {
+  getTagList(level) {
     const tagList = [];
     const data = this.data.data;
     switch (this.data.type) {
@@ -185,13 +214,14 @@ export class OseItem extends Item {
         }
         return tagList;
       case "ability":
-        let roll = "";
-        roll += data.roll ? data.roll : "";
-        roll += data.rollTarget ? CONFIG.OSE.roll_type[data.rollType] : "";
-        roll += data.rollTarget ? data.rollTarget : "";
         const reqs = data.requirements.split(",");
         reqs.forEach((r) => tagList.push({ label: r }));
         if (data.roll) {
+          let roll = "";
+          roll += data.roll ? data.roll : "";
+          let rollLevel = this.getRollTarget(data.rollTarget, level);
+          roll += rollLevel.target ? CONFIG.OSE.roll_type[data.rollType]+rollLevel.target : "";
+          roll += rollLevel.levelled ? " (Level "+level+")" : "";
           tagList.push({
             label: `${game.i18n.localize("OSE.items.Roll")} ${roll}`,
           });
@@ -207,7 +237,7 @@ export class OseItem extends Item {
     }
   }
 
-  getTags() {
+  getTags(level) {
     let formatTag = (tag, icon) => {
       if (!tag) return "";
       tag = tag.trim();
@@ -217,7 +247,7 @@ export class OseItem extends Item {
       }
       return `<li class='tag'>${fa}${tag}</li>`;
     };
-    return this.getTagList().reduce((acc, v) => {
+    return this.getTagList(level).reduce((acc, v) => {
       return `${acc}${formatTag(v.label, v.icon)}`;
     }, "");
   }
@@ -300,6 +330,7 @@ export class OseItem extends Item {
   async show() {
     // Basic template rendering data
     const token = this.actor.token;
+    const level = this.actor.data.data.details.level;
     const templateData = {
       actor: this.actor,
       tokenId: token ? `${token.parent.id}.${token.id}` : null,

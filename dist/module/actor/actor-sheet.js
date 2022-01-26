@@ -35,7 +35,8 @@ export class OseActorSheet extends ActorSheet {
     event.preventDefault();
     let li = $(event.currentTarget).parents(".item"),
       item = this.actor.items.get(li.data("item-id")),
-      description = TextEditor.enrichHTML(item.data.data.description);
+      description = TextEditor.enrichHTML(item.data.data.description),
+      level = this.actor.data.data.details.level;
 
     // Toggle summary
     if (li.hasClass("expanded")) {
@@ -44,7 +45,7 @@ export class OseActorSheet extends ActorSheet {
     } else {
       // Add item tags
       let div = $(
-        `<div class="item-summary"><ol class="tag-list">${item.getTags()}</ol><div>${description}</div></div>`
+        `<div class="item-summary"><ol class="tag-list">${item.getTags(level)}</ol><div>${description}</div></div>`
       );
       li.parents(".item-entry").append(div.hide());
       div.slideDown(200);
