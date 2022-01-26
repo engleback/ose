@@ -110,16 +110,25 @@ export class OseItem extends Item {
         };
     }
     const targets = rollTarget.split(",");
-    let target = 0;
+    let target = null;
     let levelled = false;
     if (level > 0 && targets.length > 1) {
-        const targetString = level > targets.length ? targets[targets.length - 1] : targets[level - 1];
-        target = Number(targetString);
         levelled = true;
+        let tString = null;
+        let l2 = level - 1;
+        do {
+            if (l2 < targets.length) {
+                tString = targets[l2];
+                if (tString != null && tString.length > 0 && !isNaN(Number(tString))) {
+                    target = Number(tString);
+                }
+            }
+            l2 -= 1;
+        } while (l2 >= 0 && target == null);
     } else {
         target = Number(targets[0]);
     }
-    if (isNaN(target)) {
+    if (target == null || isNaN(target)) {
         target = 0;
     }
     return { 
